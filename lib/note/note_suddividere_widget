@@ -1,0 +1,94 @@
+
+//Perché dividere un widget stateful in widget più piccoli
+
+//Immagina la tua UI così:
+UIUpdatesDemo (Stateful)
+│
+├── Text("Do you understand?")
+├── Row(Yes / No buttons)
+└── if (isUnderstood) Text("Great!")
+//Quando premi un pulsante → setState() viene chiamato → build() ricostruisce TUTTO.
+
+//PROBLEMA: troppo lavoro per Flutter
+//Quando premi “Yes” o “No”, Flutter deve:
+setState()
+   │
+   ▼
+┌──────────────────────────┐
+│ build() ricostruisce TUTTO│
+└──────────────────────────┘
+   │
+   ▼
+Controlla TUTTI i widget:
+- Text
+- SizedBox
+- Row
+- Column
+- Text condizionale
+//Anche se solo una piccola parte dipende dallo stato.
+
+//IDEA: spostare la parte “dinamica” in un widget più piccolo
+UIUpdatesDemo (Stateless)
+│
+└── DemoButtons (Stateful)
+      │
+      ├── Row(Yes / No)
+      └── if (isUnderstood) Text("Great!")
+//Ora solo DemoButtons contiene lo stato.
+
+//RISULTATO: ricostruzione molto più efficiente
+//Quando premi “Yes”:
+setState() → SOLO DemoButtons si aggiorna
+
+UIUpdatesDemo (Stateless)     
+│
+├── NON ricostruito ❌
+│
+└── DemoButtons (Stateful)
+        │
+        ▼
+   build() chiamato ✔️
+//Flutter aggiorna solo:
+//-la Row dei pulsanti
+//-il Text condizionale
+//Tutto il resto rimane intatto.
+
+//Perché è più efficiente?
+//Perché Flutter deve controllare solo una piccola parte dell’albero:
+Prima:
+[Controlla 10 widget]
+
+Dopo:
+[Controlla solo 2 widget]
+
+// Esempio completo
+
+//PRIMA (tutto dentro un unico StatefulWidget)
+Premi YES
+   │
+   ▼
+setState()
+   │
+   ▼
+UIUpdatesDemo.build()  ← ricostruisce TUTTO
+   │
+   ▼
+Flutter confronta TUTTI gli Element
+   │
+   ▼
+Aggiorna solo la parte necessaria
+
+//DOPO (stato spostato in un widget più piccolo)
+Premi YES
+   │
+   ▼
+setState() (solo in DemoButtons)
+   │
+   ▼
+DemoButtons.build()  ← ricostruisce SOLO questa parte
+   │
+   ▼
+UIUpdatesDemo NON viene toccato
+
+
+

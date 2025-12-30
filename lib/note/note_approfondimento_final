@@ -1,0 +1,193 @@
+//VAR, FINAL e CONST in Dart
+
+//==============================================================
+//1. Perché questo argomento può confondere?
+//==============================================================
+
+//Nel corso abbiamo visto spesso:
+ final numbers = [1, 2, 3];
+ numbers.add(4);   // ✔️ funziona
+
+//E molti si chiedono:
+//"Ma se è FINAL, perché posso aggiungere valori? Non dovrebbe essere immutabile?"
+
+//La risposta è NO: FINAL non significa “non modificabile”.
+//FINAL significa “non riassegnabile”.
+
+
+//==============================================================
+//2. Differenza fondamentale: variabile vs oggetto in memoria
+//==============================================================
+
+//Quando scrivi:
+final numbers = [1, 2, 3];
+
+//Succede questo:
+
+numbers ──► [1, 2, 3]
+            ^
+            |__ OGGETTO in memoria
+//La variabile `numbers` contiene SOLO l’indirizzo dell’oggetto lista.
+//FINAL blocca la variabile, NON l’oggetto.
+
+
+//==============================================================
+//3. FINAL permette di modificare l’oggetto, ma NON la variabile
+//==============================================================
+//
+//✔️ Questo funziona:
+numbers.add(4);
+
+//Perché stai modificando l’OGGETTO in memoria, non la variabile.
+
+//❌ Questo NON funziona:
+numbers = [5, 6];
+
+//Perché stai cercando di assegnare un NUOVO oggetto alla variabile.
+//FINAL lo impedisce.
+
+
+//==============================================================
+//4. VAR invece permette tutto
+//==============================================================
+
+var numbers = [1, 2, 3];
+numbers = [5, 6];   // ✔️ funziona
+
+//VAR permette:
+//- modificare l’oggetto
+//- riassegnare la variabile
+//È la forma più “libera”.
+
+
+//==============================================================
+//5. CONST = oggetto IMMUTABILE
+//==============================================================
+
+const numbers = [1, 2, 3];
+
+❌ numbers.add(4);  // ERRORE
+
+//Perché CONST crea un oggetto IMMUTABILE.
+//Non puoi modificarlo in nessun modo.
+
+❌ numbers = [5, 6]; // ERRORE
+
+//Perché CONST blocca sia la variabile che l’oggetto.
+
+
+//==============================================================
+//6. Diagramma riassuntivo
+//==============================================================
+
+var     → variabile modificabile, oggetto modificabile
+final   → variabile NON riassegnabile, oggetto modificabile
+const   → variabile NON riassegnabile, oggetto NON modificabile
+
+
+//==============================================================
+//7. Perché FINAL permette .add() ma CONST no?
+//==============================================================
+
+//FINAL blocca la VARIABILE:
+numbers ──► [1, 2, 3]   (oggetto A)
+
+numbers.add(4) modifica l’oggetto A.
+//L’indirizzo non cambia → FINAL lo permette.
+
+//CONST blocca l’OGGETTO:
+numbers ──► [1, 2, 3] (oggetto IMMUTABILE)
+
+numbers.add(4) tenta di modificare l’oggetto → ERRORE.
+
+
+//==============================================================
+//8. Creazione di nuovi oggetti vs modifica di oggetti esistenti
+//==============================================================
+
+//Quando fai:
+var users = ["Max"];
+users = ["Anna"];
+
+//Succede:
+
+1) ["Max"] viene creato in memoria
+2) ["Anna"] viene creato in memoria
+3) la variabile users ora punta a ["Anna"]
+4) ["Max"] non è più usato → Dart lo elimina (garbage collector)
+
+
+//==============================================================
+//9. Modificare un oggetto NON crea un nuovo oggetto
+//==============================================================
+
+var list = [1, 2, 3];
+list.add(4);
+
+//L’oggetto rimane lo stesso:
+[1, 2, 3, 4]
+
+//L’indirizzo in memoria non cambia.
+//Per questo FINAL lo permette.
+
+
+//==============================================================
+//10. Perché in KeyStart si crea una COPIA della lista?
+//==============================================================
+
+//Nel file delle keys, per ordinare i TODO si fa:
+
+final sortedTodos = List.of(todos)..sort();
+
+//Perché?
+
+//Perché sort() modifica la lista su cui viene chiamato.
+//Se modificassi direttamente `todos`, cambieresti l’originale.
+
+List.of() crea una COPIA:
+todos ──► [A, B, C]   (originale)
+sortedTodos ──► [A, B, C] (copia)
+
+sort() modifica SOLO la copia.
+
+//È una best practice per evitare effetti collaterali.
+
+
+//==============================================================
+//11. FINAL + CONST insieme
+//==============================================================
+
+//Puoi scrivere:
+
+final numbers = const [1, 2, 3];
+
+//Oppure:
+
+const numbers = [1, 2, 3];
+
+//La seconda è una scorciatoia della prima.
+
+//Risultato:
+- la variabile è finale
+- l’oggetto è const
+
+//Quindi:
+ ❌ numbers = [...]   (non puoi riassegnare)
+ ❌ numbers.add(...)  (non puoi modificare)
+
+
+//==============================================================
+//12. Riassunto finale
+//==============================================================
+
+✔️ VAR → tutto modificabile
+✔️ FINAL → variabile fissa, oggetto modificabile
+✔️ CONST → variabile fissa, oggetto immutabile
+
+✔️ FINAL permette .add() perché non cambia l’indirizzo
+✔️ CONST blocca tutto perché l’oggetto è immutabile
+
+✔️ Usare FINAL è una best practice per evitare riassegnazioni accidentali
+✔️ Usare CONST migliora performance e ottimizzazioni
+
+//Ora FINAL, VAR e CONST dovrebbero essere molto più chiari.
