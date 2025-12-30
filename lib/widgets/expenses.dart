@@ -46,6 +46,17 @@ class Expenses extends StatefulWidget {
 // - i metodi per aggiungere/rimuovere spese
 // - la logica per mostrare SnackBar e Undo
 // - la costruzione della UI
+//
+// ***IMPORTANTE (spiegazione del video):***
+// Flutter dimensiona i widget in base a:
+// 1) le preferenze del widget figlio
+// 2) i vincoli imposti dal widget padre
+//
+// Column NON impone vincoli di altezza ai figli → i figli ricevono
+// "altezza infinita" → ListView e Row con contenuti espandibili
+// vanno in errore.
+//
+// Expanded risolve questo problema imponendo un vincolo di altezza FINITO.
 // ===============================================================
 class _ExpensesState extends State<Expenses> {
   // LISTA DELLE SPESE REGISTRATE
@@ -141,6 +152,9 @@ class _ExpensesState extends State<Expenses> {
   // ===============================================================
   @override
   Widget build(BuildContext context) {
+    //per cambiare la visualizzazione in schermi piu grandi
+    final width = MediaQuery.of(context).size.width;
+
     // Widget mostrato quando NON ci sono spese
     Widget mainContent = const Center(
       child: Text('No expense found. Start adding some! '),
@@ -172,16 +186,60 @@ class _ExpensesState extends State<Expenses> {
       // ===============================================================
       // CORPO DELLA SCHERMATA
       // ===============================================================
-      body: Column(
-        children: [
-          // Grafico delle spese (widget Chart)
-          Chart(expenses: _registerExpenses),
+      //
+      // ***SPIEGAZIONE IMPORTANTE SUI VINCOLI (dal video):***
+      //
+      // Column → NON impone vincoli di altezza ai figli.
+      // Questo significa che un widget come ListView o un grafico con width: double.infinity
+      // riceverebbe "altezza infinita" → ERRORE.
+      //
+      // Expanded → impone un vincolo FINITO:
+      // "puoi occupare SOLO lo spazio rimanente".
+      //
+      // Questo risolve:
+      // - Column + ListView (errore: viewport unbounded height)
+      //- Row + Chart (errore: width infinita)
+      //
+      // Expanded trasforma uno spazio infinito in uno spazio misurabile.
+      //
+      // Per questo motivo:
+      // - sotto il grafico usiamo Expanded(mainContent)
+      // - in modalità orizzontale usiamo Expanded anche per il grafico
+      // ===============================================================
+      body: width < 600
+          ? Column(
+              children: [
+                // Grafico delle spese (widget Chart)
+                //
+                // Chart ha un Container con height fissa (180),
+                // quindi NON crea problemi di vincoli verticali.
+                Chart(expenses: _registerExpenses),
 
-          // Expanded → permette alla lista di occupare tutto lo spazio rimanente.
-          // Senza Expanded, ListView darebbe errore perché non ha un'altezza definita.
-          Expanded(child: mainContent),
-        ],
-      ),
+                // Expanded → permette alla lista di occupare tutto lo spazio rimanente.
+                //
+                // ***Perché serve Expanded?***
+                // - Column NON dà un'altezza ai figli
+                // - ListView vuole un'altezza FINITA
+                // - Expanded impone un vincolo: "usa tutto lo spazio rimanente"
+                // - così ListView diventa scrollabile e non esplode
+                Expanded(child: mainContent),
+              ],
+            )
+          : Row(
+              children: [
+                // Grafico delle spese (widget Chart)
+                //
+                // ***Perché Expanded anche qui?***
+                // - Row dà larghezza infinita ai figli
+                // - Chart ha width: double.infinity → conflitto
+                // - Expanded limita la larghezza disponibile
+                Expanded(child: Chart(expenses: _registerExpenses)),
+
+                // Expanded → permette alla lista di occupare tutto lo spazio rimanente.
+                // Senza Expanded, ListView darebbe errore perché non ha un'altezza definita.
+                Expanded(child: mainContent),
+              ],
+            ),
     );
   }
 }

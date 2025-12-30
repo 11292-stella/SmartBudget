@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
 import 'package:portafoglio_smart/models/expense.dart';
 
@@ -189,128 +190,233 @@ class _NewExpenseState extends State<NewExpense> {
   // ===============================================================
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      // Padding aggiunge spazio interno attorno al contenuto.
-      // Qui: left = 16, top = 48, right = 16, bottom = 16.
-      padding: EdgeInsets.fromLTRB(16, 48, 16, 16),
+    // ===============================================================
+    // MediaQuery.of(context).viewInsets.bottom
+    // ===============================================================
+    //
+    // Restituisce lo spazio occupato dalla tastiera quando è aperta.
+    // Lo usiamo per aggiungere padding extra in basso, così il contenuto
+    // del form non viene coperto dalla tastiera in modalità orizzontale.
+    //
+    // Risultato: quando la tastiera appare, il form "si solleva".
+    // ===============================================================
+    final keyboardSpace = MediaQuery.of(context).viewInsets.bottom;
 
-      child: Column(
-        children: [
-          // -----------------------------------------------------------
-          // CAMPO DI TESTO PER IL TITOLO
-          // -----------------------------------------------------------
-          TextField(
-            controller: _titleController, // collega il controller al TextField
-            maxLength: 50, // massimo 50 caratteri
-            decoration: InputDecoration(
-              label: Text('Title'), // testo visibile sopra/nel campo
+    return LayoutBuilder(
+      // ===============================================================
+      // LayoutBuilder
+      // ===============================================================
+      //
+      // Permette di ottenere i vincoli del layout (es: larghezza disponibile).
+      // Lo usiamo per creare un layout responsive:
+      // - se width < 600 → layout mobile
+      // - se width >= 600 → layout tablet/orizzontale
+      // ===============================================================
+      builder: (ctx, constraints) {
+        final width = constraints.maxWidth;
+
+        return SizedBox(
+          height: double.infinity, // necessario per permettere lo scroll
+          child: SingleChildScrollView(
+            // ===============================================================
+            // SingleChildScrollView
+            // ===============================================================
+            //
+            // Serve per evitare overflow quando:
+            // - la tastiera è aperta
+            // - il dispositivo è in orizzontale
+            // - il contenuto supera l’altezza dello schermo
+            //
+            // Permette al form di diventare scrollabile.
+            // ===============================================================
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(16, 48, 16, keyboardSpace + 16),
+
+              child: Column(
+                children: [
+                  // ===============================================================
+                  // TITOLO — layout responsive
+                  // ===============================================================
+                  //
+                  // Se lo schermo è largo (>=600), mostriamo il titolo in una Row
+                  // per sfruttare meglio lo spazio orizzontale.
+                  //
+                  // Altrimenti, usiamo il layout classico verticale.
+                  // ===============================================================
+                  if (width >= 600)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _titleController,
+                            maxLength: 50,
+                            decoration: InputDecoration(label: Text('Title')),
+                          ),
+                        ),
+                        const SizedBox(width: 24),
+                      ],
+                    )
+                  else
+                    TextField(
+                      controller: _titleController,
+                      maxLength: 50,
+                      decoration: InputDecoration(label: Text('Title')),
+                    ),
+
+                  // ===============================================================
+                  // RIGA IMPORTO + DATA
+                  // ===============================================================
+                  //
+                  // Questa Row contiene due elementi principali:
+                  //
+                  // 1) Il campo di testo per inserire l'importo
+                  // 2) Il selettore della data (testo + icona calendario)
+                  //
+                  // La Row li mette uno accanto all’altro orizzontalmente.
+                  // Entrambi sono avvolti da Expanded per dividere equamente lo spazio
+                  // e impedire overflow orizzontali.
+                  //
+                  Row(
+                    children: [
+                      // -----------------------------------------------------------
+                      // CAMPO IMPORTO
+                      // -----------------------------------------------------------
+                      //
+                      // Expanded → questo TextField occupa metà della riga.
+                      // Senza Expanded, rischierebbe di comprimere o spingere fuori
+                      // il selettore della data.
+                      //
+                      Expanded(
+                        child: TextField(
+                          controller:
+                              _amountController, // legge il valore inserito
+                          keyboardType:
+                              TextInputType.number, // apre tastiera numerica
+                          decoration: InputDecoration(
+                            prefixText:
+                                '\$ ', // simbolo valuta davanti al numero
+                            label: Text('Amount'), // etichetta del campo
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(width: 16), // spazio tra importo e data
+                      // -----------------------------------------------------------
+                      // SELETTORE DATA (TESTO + ICONA)
+                      // -----------------------------------------------------------
+                      //
+                      // Anche questo Expanded occupa metà della riga.
+                      // Dentro c’è un’altra Row per allineare testo e icona a destra.
+                      //
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+
+                          // allinea tutto a destra per un layout più pulito
+                          children: [
+                            // Mostra la data selezionata oppure un placeholder
+                            Text(
+                              _selectedDate == null
+                                  ? 'No date selected'
+                                  : formatter.format(_selectedDate!),
+                            ),
+
+                            // Icona che apre il date picker
+                            IconButton(
+                              onPressed: _presentDatePicker,
+                              icon: const Icon(Icons.calendar_month),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(
+                    height: 16,
+                  ), // spazio verticale prima della sezione successiva
+                  // ===============================================================
+                  // CATEGORIA + CANCEL + SAVE
+                  // ===============================================================
+                  //
+                  // Questa Row contiene:
+                  // - il menu a tendina per scegliere la categoria
+                  // - un grande Spacer() che spinge i pulsanti a destra
+                  // - il pulsante Cancel
+                  // - il pulsante Save
+                  //
+                  // È la riga finale del form.
+                  //
+                  Row(
+                    children: [
+                      // -----------------------------------------------------------
+                      // MENU A TENDINA PER LA CATEGORIA
+                      // -----------------------------------------------------------
+                      //
+                      // DropdownButton mostra tutte le categorie definite nell’enum.
+                      // Quando l’utente cambia categoria, aggiorniamo lo stato.
+                      //
+                      DropdownButton(
+                        value: _selectedCategory,
+                        items: Category.values
+                            .map(
+                              (category) => DropdownMenuItem(
+                                value: category,
+                                child: Text(category.name.toUpperCase()),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            if (value == null) return;
+                            _selectedCategory = value;
+                          });
+                        },
+                      ),
+
+                      // -----------------------------------------------------------
+                      // Spacer()
+                      // -----------------------------------------------------------
+                      //
+                      // Occupa tutto lo spazio libero tra il dropdown e i pulsanti.
+                      // Risultato: i pulsanti vengono spinti completamente a destra.
+                      //
+                      Spacer(),
+
+                      // -----------------------------------------------------------
+                      // PULSANTE CANCEL
+                      // -----------------------------------------------------------
+                      //
+                      // Chiude il modal senza salvare nulla.
+                      //
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        child: Text('Cancel'),
+                      ),
+
+                      // -----------------------------------------------------------
+                      // PULSANTE SAVE
+                      // -----------------------------------------------------------
+                      //
+                      // Chiama _submitExpenseData():
+                      // - valida i campi
+                      // - crea l’Expense
+                      // - chiude il modal
+                      //
+                      ElevatedButton(
+                        onPressed: _submitExpenseData,
+                        child: const Text('Save Expense'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-
-          // -----------------------------------------------------------
-          // RIGA CHE CONTIENE IMPORTO + DATA
-          // -----------------------------------------------------------
-          Row(
-            children: [
-              // CAMPO IMPORTO
-              //
-              // Expanded → fa sì che questo TextField occupi tutto lo spazio
-              // orizzontale disponibile nella riga, prima dello SizedBox e dell’altro Expanded.
-              Expanded(
-                child: TextField(
-                  controller: _amountController,
-                  keyboardType:
-                      TextInputType.number, // tastiera numerica sul telefono
-                  decoration: InputDecoration(
-                    prefixText:
-                        '\$ ', // testo fisso prima del valore (es: simbolo valuta)
-                    label: Text('Amount'),
-                  ),
-                ),
-              ),
-
-              const SizedBox(
-                width: 16,
-              ), // spazio orizzontale tra il campo importo e la parte data
-              // SELETTORE DATA (testo + icona calendario)
-              Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end, // allinea a destra
-                  children: [
-                    // Testo che mostra la data selezionata,
-                    // oppure "No date selected" se _selectedDate è null.
-                    Text(
-                      _selectedDate == null
-                          ? 'No date selected'
-                          : formatter.format(_selectedDate!),
-                    ),
-
-                    // Icona che apre il date picker quando viene premuta.
-                    IconButton(
-                      onPressed: _presentDatePicker,
-                      icon: const Icon(Icons.calendar_month),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          SizedBox(
-            height: 16,
-          ), // spazio verticale tra la riga precedente e la successiva
-          // -----------------------------------------------------------
-          // RIGA CON DROPDOWN CATEGORIA + PULSANTI CANCEL E SAVE
-          // -----------------------------------------------------------
-          Row(
-            children: [
-              // MENU A TENDINA PER LA CATEGORIA
-              //
-              // DropdownButton mostra un elenco di valori tra cui scegliere.
-              // Qui usiamo Category.values (tutte le voci dell’enum Category).
-              DropdownButton(
-                value: _selectedCategory, // valore attualmente selezionato
-                items: Category.values
-                    .map(
-                      (category) => DropdownMenuItem(
-                        value: category, // valore che verrà passato a onChanged
-                        child: Text(category.name.toUpperCase()),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  // Quando l’utente seleziona una nuova categoria,
-                  // aggiorniamo lo stato.
-                  setState(() {
-                    if (value == null) return;
-                    _selectedCategory = value;
-                  });
-                },
-              ),
-
-              Spacer(), // spinge i pulsanti a destra (occupando lo spazio vuoto)
-              // PULSANTE "Cancel" → chiude il modal senza salvare nulla.
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context); // chiude il bottom sheet
-                },
-                child: Text('Cancel'),
-              ),
-
-              // PULSANTE "Save Expense" → tenta di salvare la spesa.
-              //
-              // Chiama _submitExpenseData(), che:
-              // - valida i campi
-              // - se validi → crea l’Expense, chiama onAddExpense, chiude il modal
-              // - se non validi → mostra un AlertDialog
-              ElevatedButton(
-                onPressed: _submitExpenseData,
-                child: const Text('Save Expense'),
-              ),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
